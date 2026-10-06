@@ -132,7 +132,7 @@ docker run --rm -it gemelo-aco
 <img width="1023" height="785" alt="image" src="https://github.com/user-attachments/assets/7ba2ff31-2f79-49f5-a486-8700ba011c54" />
 - Laberinto en PyBullet, cuadro azul el inicio o punto A, cuadro rojo es la meta.
 
-- Video (link)
+- Video (https://youtube.com/shorts/3La-ufRYOZs?si=1K2ZkX6OMBI-Noar)
 ---
 
 ##  Referencias
