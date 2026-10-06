@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Simulación ACO - Enjambre de Carritos en Laberinto</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f4f8ff; margin: 0; padding: 20px; text-align: center; }
+  h1 { color: #1a3a6b; }
+  .panel { background: #fff; border: 2px solid #1a3a6b; border-radius: 10px; padding: 15px; display: inline-block; margin-top: 10px; }
+  button { background: #1a73e8; color: #fff; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; margin: 5px; }
+  button:hover { background: #1557b0; }
+  button:disabled { background: #9bb7d4; cursor: not-allowed; }
+  canvas { background: #fff; border: 2px solid #333; border-radius: 8px; margin-top: 15px; }
+  #stats { font-size: 15px; color: #333; margin-top: 10px; font-weight: bold; }
+  .leyenda { margin-top: 8px; font-size: 14px; }
+  .leyenda span { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin: 0 6px 0 14px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<h1>🐜 Optimización por Colonia de Hormigas (ACO) — Laberinto</h1>
+<p>Tres agentes/carritos encuentran la ruta óptima desde <b>A</b> hasta la meta <b>🏁</b> depositando feromonas virtuales.</p>
+
+<div class="panel">
+  <button id="btnStart">▶ Iniciar simulación</button>
+  <button id="btnReset">↻ Nuevo laberinto</button>
+  <div id="stats">Iteración: 0 | Hormigas: 15 | Mejor ruta: — | Estado: Listo</div>
+</div>
+
+<br>
+<canvas id="cv" width="640" height="640"></canvas>
+
+<div class="leyenda">
+  <span style="background:#222"></span>Muro
+  <span style="background:#8ee3a0"></span>Feromona
+  <span style="background:#ff9e9e"></span>Rutas de hormigas
+  <span style="background:#ffd23f"></span>Mejor ruta
+  <span style="background:#1a73e8"></span>Inicio (A)
+  <span style="background:#e8332a"></span>Meta (🏁)
+</div>
+
+<script>
+// ================== PARÁMETROS ACO ==================
+const COLS = 21, ROWS = 21;
+const NUM_HORMIGAS = 15;
+const MAX_ITERS = 120;
+const ALPHA = 1.0;   // peso de la feromona
+const BETA  = 2.5;   // peso de la heurística (distancia a la meta)
+const RHO   = 0.15;  // evaporación
+const Q     = 100;   // depósito de feromona
+const MAX_PASOS = 1200;
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const CELL = Math.min(cv.width / COLS, cv.height / ROWS);
+
+let grid, inicio, meta, tau, mejorRuta, rutasIter, iter, corriendo, timerCarrito;
+
+// ================== GENERACIÓN DE LABERINTO ==================
+function nuevoLaberinto() {
+  grid = Array.from({length: ROWS}, () => Array(COLS).fill(1));
+  const stack = [[1,1]]; grid[1][1] = 0;
+  const dirs = [[0,2],[0,-2],[2,0],[-2,0]];
+  while (stack.length) {
+    const [r,c] = stack[stack.length-1];
+    const ops = dirs.filter(([dr,dc]) => {
+      const nr=r+dr, nc=c+dc;
+      return nr>0 && nr<ROWS-1 && nc>0 && nc<COLS-1 && grid[nr][nc]===1;
+    });
+    if (!ops.length) { stack.pop(); continue; }
+    const [dr,dc] = ops[Math.floor(Math.random()*ops.length)];
+    grid[r+dr/2][c+dc/2] = 0; grid[r+dr][c+dc] = 0;
+    stack.push([r+dr, c+dc]);
+  }
+  grid[1][1]=0; grid[ROWS-2][COLS-2]=0;
+  inicio = {r:1, c:1}; meta = {r:ROWS-2, c:COLS-2};
+  tau = Array.from({length: ROWS}, () => Array(COLS).fill(0.01));
+  mejorRuta = null; iter = 0;
+  dibujar(); actualizarStats('Listo');
+}
+
+// ================== UTILIDADES ==================
+const esCelda = (r,c) => r>=0 && r<ROWS && c>=0 && c<COLS && grid[r][c]===0;
+const manhattan = (a) => Math.abs(a.r-meta.r) + Math.abs(a.c-meta.c);
+
+function elegirSiguiente(actual, visitados) {
+  const opciones = [];
+  for (const [dr,dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    const nr=actual.r+dr, nc=actual.c+dc;
+    if (esCelda(nr,nc)) opciones.push({r:nr,c:nc});
+  }
+  let libres = opciones.filter(o => !visitados.has(o.r+','+o.c));
+  if (!libres.length) libres = opciones; // si queda atrapada, retrocede
+  const pesos = libres.map(o => {
+    const t = Math.pow(tau[o.r][o.c], ALPHA);
+    const h = Math.pow(1/(1+manhattan(o)), BETA);
+    return t*h;
+  });
+  let total = pesos.reduce((a,b)=>a+b,0), r = Math.random()*total;
+  for (let i=0;i<libres.length;i++) { r -= pesos[i]; if (r<=0) return libres[i]; }
+  return libres[libres.length-1];
+}
+
+// ================== UN PASO ACO (1 iteración) ==================
+function pasoACO() {
+  rutasIter = [];
+  const todasRutas = [];
+  for (let k=0; k<NUM_HORMIGAS; k++) {
+    const visitados = new Set([inicio.r+','+inicio.c]);
+    const ruta = [{...inicio}];
+    let actual = {...inicio}, pasos = 0;
+    while (pasos < MAX_PASOS && !(actual.r===meta.r && actual.c===meta.c)) {
+      actual = elegirSiguiente(actual, visitados);
+      visitados.add(actual.r+','+actual.c);
+      ruta.push({...actual}); pasos++;
+    }
+    if (actual.r===meta.r && actual.c===meta.c) todasRutas.push(ruta);
+    rutasIter.push(ruta);
+  }
+  // evaporación
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) tau[r][c] *= (1-RHO);
+  // depósito
+  for (const ruta of todasRutas)
+    for (const celda of ruta) tau[celda.r][celda.c] += Q/ruta.length;
+  // mejor ruta
+  for (const ruta of todasRutas)
+    if (!mejorRuta || ruta.length < mejorRuta.length) mejorRuta = ruta;
+  iter++;
+}
+
+// ================== DIBUJO ==================
+function dibujar() {
+  ctx.clearRect(0,0,cv.width,cv.height);
+  let tauMax = 0;
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) tauMax=Math.max(tauMax,tau[r][c]);
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+    const x=c*CELL, y=r*CELL;
+    if (grid[r][c]===1) { ctx.fillStyle='#222'; ctx.fillRect(x,y,CELL,CELL); }
+    else {
+      ctx.fillStyle='#fff'; ctx.fillRect(x,y,CELL,CELL);
+      if (tau[r][c] > 0.05) {
+        ctx.fillStyle = `rgba(80,200,120,${Math.min(tau[r][c]/tauMax,1)*0.8})`;
+        ctx.fillRect(x,y,CELL,CELL);
+      }
+    }
+  }
+  // rutas exploradas esta iteración
+  if (rutasIter && corriendo) {
+    ctx.strokeStyle = 'rgba(255,120,120,0.35)'; ctx.lineWidth = 2;
+    for (const ruta of rutasIter) {
+      ctx.beginPath();
+      ruta.forEach((p,i)=>{ const x=p.c*CELL+CELL/2, y=p.r*CELL+CELL/2; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+      ctx.stroke();
+    }
+  }
+  // mejor ruta
+  if (mejorRuta) {
+    ctx.strokeStyle = '#f5b301'; ctx.lineWidth = Math.max(3, CELL/4); ctx.lineCap='round';
+    ctx.beginPath();
+    mejorRuta.forEach((p,i)=>{ const x=p.c*CELL+CELL/2, y=p.r*CELL+CELL/2; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+  }
+  // inicio y meta
+  ctx.fillStyle='#1a73e8'; ctx.fillRect(inicio.c*CELL+2, inicio.r*CELL+2, CELL-4, CELL-4);
+  ctx.fillStyle='#e8332a'; ctx.fillRect(meta.c*CELL+2, meta.r*CELL+2, CELL-4, CELL-4);
+  ctx.fillStyle='#fff'; ctx.font = `bold ${CELL/2.2}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('A', inicio.c*CELL+CELL/2, inicio.r*CELL+CELL/2);
+  ctx.fillText('🏁', meta.c*CELL+CELL/2, meta.r*CELL+CELL/2);
+}
+
+function actualizarStats(estado) {
+  document.getElementById('stats').textContent =
+    `Iteración: ${iter} | Hormigas: ${NUM_HORMIGAS} | Mejor ruta: ${mejorRuta ? mejorRuta.length + ' pasos' : '—'} | Estado: ${estado}`;
+}
+
+// ================== ANIMACIÓN DEL CARRITO POR LA RUTA ==================
+function animarCarrito() {
+  if (!mejorRuta) return;
+  let i = 0;
+  clearInterval(timerCarrito);
+  timerCarrito = setInterval(() => {
+    dibujar();
+    if (i >= mejorRuta.length) { clearInterval(timerCarrito); actualizarStats('¡Ruta óptima encontrada!'); return; }
+    const p = mejorRuta[i++];
+    ctx.font = `${CELL*0.9}px Arial`;
+    ctx.fillText('🚗', p.c*CELL+CELL/2, p.r*CELL+CELL/2);
+  }, 90);
+}
+
+// ================== BUCLE PRINCIPAL ==================
+function iniciar() {
+  document.getElementById('btnStart').disabled = true;
+  corriendo = true;
+  const timer = setInterval(() => {
+    pasoACO();
+    dibujar();
+    actualizarStats('Explorando…');
+    if (iter >= MAX_ITERS) {
+      clearInterval(timer); corriendo = false;
+      document.getElementById('btnStart').disabled = false;
+      animarCarrito();
+    }
+  }, 80);
+}
+
+document.getElementById('btnStart').onclick = iniciar;
+document.getElementById('btnReset').onclick = () => {
+  clearInterval(timerCarrito); nuevoLaberinto();
+  document.getElementById('btnStart').disabled = false;
+};
+
+nuevoLaberinto();
+</script>
+</body>
+</html>
