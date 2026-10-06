@@ -1,5 +1,10 @@
 # 🐜 Enjambre de 3 Carritos con Algoritmo de Colonia de Hormigas (ACO) en ESP32 y Gemelo Digital en PyBullet
 
+Integrantes:
+**Camilo Molano** - 7004586
+**Nicolas Robayo** - 7004604
+**Jordan Rodriguez** - 70046**
+
 ##  Descripción del problema
 
 Tres carritos físicos (basados en nodos **ESP32**) deben encontrar la ruta óptima desde un punto **A** hasta una meta en un laberinto/almacén. El algoritmo de optimización por colonia de hormigas (**ACO**) corre dentro de cada ESP32, las feromonas se intercambian por red (ESP-NOW / modo AP), y el resultado se refleja en una simulación **PyBullet** donde 3 robots virtuales replican el comportamiento. Todo el entorno virtual se ejecuta dentro de un contenedor **Docker**.
