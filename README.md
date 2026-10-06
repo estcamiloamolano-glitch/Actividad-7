@@ -98,7 +98,7 @@ Archivo HTML autocontenido: genera un laberinto aleatorio, ejecuta ACO con 15 ho
 
 **Simulación web (recomendado para evidencias):**
 - Abrir `simulacion/index.html` en cualquier navegador y presionar **Iniciar simulación**.
-- [text](file:///C:/Users/Camilo/Desktop/index.html)
+- [(file:///C:/Users/Camilo/Desktop/index.html)] 
 
 **Gemelo digital con Docker:**
 ```bash
