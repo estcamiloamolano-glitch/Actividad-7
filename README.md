@@ -1,9 +1,9 @@
 # 🐜 Enjambre de 3 Carritos con Algoritmo de Colonia de Hormigas (ACO) en ESP32 y Gemelo Digital en PyBullet
 
 Integrantes:
-**Camilo Molano** - 7004586
-**Nicolas Robayo** - 7004604
-**Jordan Rodriguez** - 70046**
+- **Camilo Molano** - 7004586
+- **Nicolas Robayo** - 7004604
+- **Jordan Rodriguez** - 7004617
 
 ##  Descripción del problema
 
