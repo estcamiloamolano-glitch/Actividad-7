@@ -91,6 +91,7 @@ for paso in mejor:                         # los 3 robots replican la ruta ópti
 
 ### 4) Simulación web (`simulacion/index.html`)
 Archivo HTML autocontenido: genera un laberinto aleatorio, ejecuta ACO con 15 hormigas y un botón **"▶ Iniciar simulación"** muestra la exploración (rutas rojas), el campo de feromonas (verde) y la ruta óptima final recorrida por 🚗.
+<img width="1097" height="893" alt="image" src="https://github.com/user-attachments/assets/cd220b5e-c202-4e28-8d54-f1b9e8af0d31" />
 
 ---
 
@@ -98,7 +99,7 @@ Archivo HTML autocontenido: genera un laberinto aleatorio, ejecuta ACO con 15 ho
 
 **Simulación web (recomendado para evidencias):**
 - Abrir `simulacion/index.html` en cualquier navegador y presionar **Iniciar simulación**.
-- [(file:///C:/Users/Camilo/Desktop/index.html)] 
+- [file:///C:/Users/Camilo/Desktop/index.html] 
 
 **Gemelo digital con Docker:**
 ```bash
@@ -118,6 +119,13 @@ docker run --rm -it gemelo-aco
 2. El gemelo digital muestra 3 robots recorriendo la misma trayectoria.
 3. La simulación HTML evidencia visualmente convergencia del enjambre, refuerzo de feromonas y ruta mínima A→🏁.
 
+<img width="1593" height="178" alt="image" src="https://github.com/user-attachments/assets/e4912ebd-5d7e-4e8e-a0e4-de4b9f7637e5" />
+- Resultados en la terminal de VS Code.
+
+<img width="1023" height="785" alt="image" src="https://github.com/user-attachments/assets/7ba2ff31-2f79-49f5-a486-8700ba011c54" />
+- Laberinto en PyBullet, cuadro azul el inicio o punto A, cuadro rojo es la meta.
+
+- Video (link)
 ---
 
 ##  Referencias
